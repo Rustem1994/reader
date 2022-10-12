@@ -1,7 +1,10 @@
 package org.rustem.reader.service;
 
+import lombok.extern.slf4j.Slf4j;
+import org.rustem.reader.model.Task;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -11,7 +14,10 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
+@Slf4j
 public class FileReader {
+
+    private RestTemplate restTemplate = new RestTemplate();
 
     @Scheduled(fixedDelay = 10000)
     public void test(){
@@ -91,6 +97,24 @@ public class FileReader {
 
         }
         System.out.println("Нашли max_max_line в файле "+max_max_filename+" = "+max_max_line);
+        System.out.println("Отправляем запрос");
+        Task task = Task.builder().name(max_max_filename).status("CREATE").build();
+        try (BufferedReader br = new BufferedReader(new java.io.FileReader("folder\\"+max_max_filename)))
+        {
+            String line="";
+            task.setText("");
+            while ((line = br.readLine()) != null) {
+                log.info("line={}",line);
+                task.setText(task.getText()+" "+line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        log.info("task={}",task);
+        restTemplate = new RestTemplate();
+        String result = restTemplate.postForObject(  "http://localhost:8080/hello",task, String.class);
+        log.info("result={}",result);
+        System.out.println("Отправили запрос");
         System.out.println("Закрыли test");
     }
 
